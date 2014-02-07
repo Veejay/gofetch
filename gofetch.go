@@ -1,15 +1,15 @@
 package main
 
 import (
+  "code.google.com/p/go.net/html"
   "fmt"
   "net/http"
-  "os"
   "net/url"
-  "code.google.com/p/go.net/html"
+  "os"
 )
 
 type HttpResponse struct {
-  url string
+  url        string
   statusCode int
 }
 
@@ -23,7 +23,7 @@ func getHypertextReference(tag html.Token) (href string) {
   return href
 }
 
-func extractLinksFromPage (address string, c chan<- string) {
+func extractLinksFromPage(address string, c chan<- string) {
   response, err := http.Get(address)
   if err != nil {
     fmt.Printf("An error occurred while issuing a HTTP GET request to %s\n", address)
@@ -43,7 +43,6 @@ func extractLinksFromPage (address string, c chan<- string) {
     case html.StartTagToken:
       if token.Data == "html" {
         i += 1
-        fmt.Printf("Encounted a <html> tag. The value of i is %d\n", i)
       }
       if token.Data == "a" {
         href := getHypertextReference(token)
@@ -59,7 +58,6 @@ func extractLinksFromPage (address string, c chan<- string) {
     case html.EndTagToken:
       if token.Data == "html" {
         i -= 1
-        fmt.Printf("Encounted a </html> tag. The value of i is %d\n", i)
         if i == 0 {
           close(c)
         }
@@ -72,17 +70,13 @@ func checkLink(href string, responses chan<- HttpResponse) {
   response, err := http.Get(href)
   if err != nil {
     // FIXME: This is absolutely not a 999. The HttpResponse should
-    // actually be named something that embeds the URL, the response and 
+    // actually be named something that embeds the URL, the response and
     // any potential errors that occurred
     responses <- HttpResponse{href, 999}
     return
   }
   defer response.Body.Close()
-  if response.StatusCode == http.StatusNotFound {
-    responses <- HttpResponse{href, response.StatusCode}
-  } else {
-    responses <- HttpResponse{href, response.StatusCode}
-  }
+  responses <- HttpResponse{href, response.StatusCode}
 }
 
 func main() {
@@ -92,10 +86,10 @@ func main() {
   go extractLinksFromPage(os.Args[1], hrefs)
   numberOfLinks := 0
   for href := range hrefs {
-    numberOfLinks++
+    numberOfLinks += 1
     go checkLink(href, httpResponses)
   }
-  for i := 0; i < numberOfLinks; i++ {
+  for i := 0; i < numberOfLinks; i += 1 {
     response := <-httpResponses
     fmt.Printf("Status %d for URL %s\n", response.statusCode, response.url)
   }
