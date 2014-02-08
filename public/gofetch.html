@@ -3,12 +3,21 @@
 <head>
 </head>
 <body>
+  
+  <input type="text" id="url" size="100">
+  <button class="fancy">
+    Go
+  </button>
+  
   <script type="text/javascript">
     var socket = new WebSocket("ws://localhost:12345/websocket");
     
     socket.onopen = function() {
       console.log('Socket status: ' + socket.readyState + ' OPEN');
-      socket.send(JSON.stringify({url: "http://www.autreplanete.com"}));
+       
+      document.querySelector("button.fancy").addEventListener('click', function() {
+          socket.send(JSON.stringify({url: document.querySelector("#url").value.trim()}));
+        }, false);
     };
     
     socket.onmessage = function(message) {
