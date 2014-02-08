@@ -1,0 +1,23 @@
+<! DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+  <script type="text/javascript">
+    var socket = new WebSocket("ws://localhost:12345/websocket");
+    
+    socket.onopen = function() {
+      console.log('Socket status: ' + socket.readyState + ' OPEN');
+      socket.send(JSON.stringify({url: "http://www.autreplanete.com"}));
+    };
+    
+    socket.onmessage = function(message) {
+      console.log(message);
+    };
+    
+    socket.onclose = function() {
+      console.log('Socket status: ' + socket.readyState + ' CLOSED');
+    };
+  </script>
+</body>
+</html>

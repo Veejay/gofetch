@@ -2,10 +2,12 @@ package main
 
 import (
   "code.google.com/p/go.net/html"
+  "github.com/gorilla/websocket"
+  "github.com/gorilla/mux"
   "fmt"
   "net/http"
   "net/url"
-  "os"
+  /* "os" */
 )
 
 type HttpResponse struct {
@@ -79,18 +81,65 @@ func checkLink(href string, responses chan<- HttpResponse) {
   responses <- HttpResponse{href, response.StatusCode}
 }
 
+func WebSocketHandler(rw http.ResponseWriter, request *http.Request) {
+  ws, err := websocket.Upgrade(rw, request, nil, 1024, 1024)
+  // TODO: Handle error
+  if err != nil {
+    return
+  }
+  for {
+    messageType, p, err := ws.ReadMessage()
+    if err != nil {
+        return
+    } else {
+      fmt.Printf("%s\n", p)
+    }
+    err = ws.WriteMessage(messageType, p)
+    if err != nil {
+        return
+    }
+  }
+}
+
+// Parameters are simply the request and the response writer
+func RootHandler(rw http.ResponseWriter, request *http.Request) {
+  fmt.Printf("GET /\nProcessing by root handler\n")
+
+  http.ServeFile(rw, request, "public/gofetch.html")
+}
+
+func QueryHandler(rw http.ResponseWriter, request *http.Request) {
+  // Process the POST request
+}
+
 func main() {
-  hrefs := make(chan string)
-  httpResponses := make(chan HttpResponse)
-  // Here we go
-  go extractLinksFromPage(os.Args[1], hrefs)
-  numberOfLinks := 0
-  for href := range hrefs {
-    numberOfLinks += 1
-    go checkLink(href, httpResponses)
-  }
-  for i := 0; i < numberOfLinks; i += 1 {
-    response := <-httpResponses
-    fmt.Printf("Status %d for URL %s\n", response.statusCode, response.url)
-  }
+
+  r := mux.NewRouter()
+
+  s := r.Schemes("http").Host("localhost").Subrouter()
+  s.HandleFunc("/", RootHandler)
+
+  s.HandleFunc("/check", QueryHandler).
+    Methods("POST").
+    Headers("X-Requested-With", "XMLHttpRequest")
+
+  s.HandleFunc("/websocket", WebSocketHandler)
+
+  http.Handle("/", s)
+  fmt.Println("Up and listening on port 12345")
+  http.ListenAndServe(":12345", nil)
+
+  /* hrefs := make(chan string) */
+  /* httpResponses := make(chan HttpResponse) */
+  /* // Here we go */
+  /* go extractLinksFromPage(os.Args[1], hrefs) */
+  /* numberOfLinks := 0 */
+  /* for href := range hrefs { */
+  /*   numberOfLinks += 1 */
+  /*   go checkLink(href, httpResponses) */
+  /* } */
+  /* for i := 0; i < numberOfLinks; i += 1 { */
+  /*   response := <-httpResponses */
+  /*   fmt.Printf("Status %d for URL %s\n", response.statusCode, response.url) */
+  /* } */
 }
