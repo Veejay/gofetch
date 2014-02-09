@@ -5,14 +5,19 @@ import (
   "github.com/gorilla/websocket"
   "github.com/gorilla/mux"
   "fmt"
+  "encoding/json"
   "net/http"
   "net/url"
   /* "os" */
 )
 
+type QueryURL struct {
+  Url string
+}
+
 type HttpResponse struct {
-  url        string
-  statusCode int
+  Url        string
+  StatusCode int
 }
 
 func getHypertextReference(tag html.Token) (href string) {
@@ -92,11 +97,28 @@ func WebSocketHandler(rw http.ResponseWriter, request *http.Request) {
     if err != nil {
         return
     } else {
-      fmt.Printf("%s\n", p)
-    }
-    err = ws.WriteMessage(messageType, p)
-    if err != nil {
-        return
+      var urlData QueryURL
+      err := json.Unmarshal(p, &urlData)
+      if err != nil {
+        panic(err)
+      }
+      hrefs := make(chan string)
+      httpResponses := make(chan HttpResponse)
+      // Here we go
+      go extractLinksFromPage(urlData.Url, hrefs)
+      numberOfLinks := 0
+      for href := range hrefs {
+        numberOfLinks += 1
+        go checkLink(href, httpResponses)
+      }
+      for i := 0; i < numberOfLinks; i += 1 {
+        response := <-httpResponses
+        responseJSON, err := json.Marshal(response)
+        if err != nil {
+          panic(err)
+        }
+        ws.WriteMessage(messageType, responseJSON)
+      }
     }
   }
 }
@@ -129,17 +151,4 @@ func main() {
   fmt.Println("Up and listening on port 12345")
   http.ListenAndServe(":12345", nil)
 
-  /* hrefs := make(chan string) */
-  /* httpResponses := make(chan HttpResponse) */
-  /* // Here we go */
-  /* go extractLinksFromPage(os.Args[1], hrefs) */
-  /* numberOfLinks := 0 */
-  /* for href := range hrefs { */
-  /*   numberOfLinks += 1 */
-  /*   go checkLink(href, httpResponses) */
-  /* } */
-  /* for i := 0; i < numberOfLinks; i += 1 { */
-  /*   response := <-httpResponses */
-  /*   fmt.Printf("Status %d for URL %s\n", response.statusCode, response.url) */
-  /* } */
 }
