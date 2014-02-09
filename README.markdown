@@ -2,19 +2,27 @@
 
 ## Usage
 	
-It's a simple command, no rocket science involved:
-	
-	gofetch url
+Start the server
+
+```bash
+./gofetch
+```
+
+You can now browse localhost on port 12345
+
+Type in a URL in the input field and click `go`, it will display the results.
 
 ## What it does
 
+* Gets the URL to search over WebSockets
 * Finds all the links on a webpage located at `url` and issues a HTTP GET request on the associated `href`
-* Displays the links and the HTTP status code returned from the GET request
+* Sends back the results as it gets them over the WebSocket back to the client
+* In turn the client's onmessage function will add a div containing info about the results inside with 
+  appropriate color codes.
 * Chokes on some malformed stuff
 
 ## What I'd like to add in the near future
 
 * Cache the a MD5 of the already-checked URLs for some time to avoid needless requests (TTL might be nice)
 * Take the initial URL from a job queue or something (Redis or whatever)
-* HTTP interface (see gorilla/mux or net/http)
 * Reports (email? JSON?)
