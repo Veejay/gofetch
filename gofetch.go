@@ -58,8 +58,9 @@ func extractLinksFromPage(address string, c chan<- string) {
           // FIXME: That's wrong, handle error
           panic(err)
         }
+        location.RawQuery = url.QueryEscape(location.RawQuery)
         if location.Scheme == "http" || location.Scheme == "https" {
-          c <- href
+          c <- location.String()
         }
       }
     case html.EndTagToken:
