@@ -8,7 +8,6 @@ import (
   "encoding/json"
   "net/http"
   "net/url"
-  /* "os" */
 )
 
 type QueryURL struct {
@@ -76,12 +75,16 @@ func extractLinksFromPage(address string, c chan<- string) {
 
 func checkLink(href string, responses chan<- HttpResponse) {
   response, err := http.Get(href)
+  // FIXME: This retry is awful, we might want to 
+  // send that to a retry channel or something
   if err != nil {
-    // FIXME: This is absolutely not a 999. The HttpResponse should
-    // actually be named something that embeds the URL, the response and
-    // any potential errors that occurred
-    responses <- HttpResponse{href, 999}
-    return
+    response, err := http.Get(href)
+    if err != nil {
+      responses <- HttpResponse{href, 999}
+      return
+    }
+    defer response.Body.Close()
+    responses <- HttpResponse{href, response.StatusCode}
   }
   defer response.Body.Close()
   responses <- HttpResponse{href, response.StatusCode}
@@ -136,7 +139,11 @@ func QueryHandler(rw http.ResponseWriter, request *http.Request) {
 }
 
 func main() {
-
+  _, err := http.Get("http://projects.metafilter.com/")
+  if err != nil {
+    fmt.Printf("%+v", err)
+    return
+  }
   r := mux.NewRouter()
 
   s := r.Schemes("http").Host("localhost").Subrouter()
