@@ -12,6 +12,10 @@ You can now browse localhost on port 12345
 
 Type in a URL in the input field and click `go`, it will display the results.
 
+## Documentation
+
+Not much to document eh, but well, you can check the [wiki](https://github.com/Veejay/gofetch/wiki)
+
 ## What it does
 
 * Gets the URL to search over WebSockets
