@@ -5,17 +5,61 @@
   <body>
     <style type="text/css">
       span.success {
-        color: green;
+        color: dodgerblue;
+        font-size: 14px;
+        font-size: bold;
+        font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; 
+      }
+      span.success > a {
+        text-decoration: none; 
+        font-weight: bold;
       }
       span.failure {
-        color: red;
+        font-size: 14px;
+        font-size: bold;
+        color: tomato;
+        font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+      }
+      span.failure > a.result {
+        text-decoration: none; 
+        font-weight: bold;
+      }
+      
+      button.fancy {
+        border: #666;
+        border-radius: 2px;
+        background-color: black;
+        color: white;
+        width: 128px;
+        height: 32px;
+        font-size: 16px;
+        font-weight: bold;
+      }
+      input[type="text"] {
+        border: none;
+        background-color: #e6e6e6;
+        padding: 4px 6px;
+        color: #444;
+        height: 32px;
+        width: 512px;
+        font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+        font-weight: bold;
+        font-size: 14px
+
+      }
+      div.actions {
+        padding: 8px 0
       }
     </style>
   
-    <input type="text" id="url" size="100">
-    <button class="fancy">
-      Go
-    </button>
+    <section id="search">
+      <input type="text" id="url" size="100">
+      <div class="actions">
+        <button class="fancy">
+          Check
+        </button>
+      </div>
+    </section>
     
     <div class="results">
     </div> 
@@ -47,10 +91,10 @@
         var msgJSON = JSON.parse(msg);
         var s = "";
         if (Math.round(parseInt(msgJSON['StatusCode'], 10) / 100) == 2) {
-          s = "<span class=\"success\">Fetched <a href=\"" + msgJSON['Url'] + "\">" + msgJSON['Url'] + "</a>, returned with status " + msgJSON['StatusCode'] + "</span>";
+          s = "<span class=\"success\">Fetched <a class=\"result\" href=\"" + msgJSON['Url'] + "\">" + msgJSON['Url'] + "</a>, returned with status " + msgJSON['StatusCode'] + "</span>";
         }
         else {
-          s = "<span class=\"failure\">Fetched <a href=\"" + msgJSON['Url'] + "\">" + msgJSON['Url'] + "</a>, returned with status " + msgJSON['StatusCode'] + "</span>";
+          s = "<span class=\"failure\">Fetched <a class=\"result\" href=\"" + msgJSON['Url'] + "\">" + msgJSON['Url'] + "</a>, returned with status " + msgJSON['StatusCode'] + "</span>";
         }
         return s;
       }

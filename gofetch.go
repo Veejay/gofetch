@@ -35,7 +35,6 @@ func extractLinksFromPage(address string, c chan<- string) {
     fmt.Printf("An error occurred while issuing a HTTP GET request to %s\n", address)
     return
   }
-  // Used to keep track of the opening and closing <html> tags
   i := 0
   defer response.Body.Close()
   tokenizer := html.NewTokenizer(response.Body)
@@ -92,7 +91,6 @@ func checkLink(href string, responses chan<- HttpResponse) {
 
 func WebSocketHandler(rw http.ResponseWriter, request *http.Request) {
   ws, err := websocket.Upgrade(rw, request, nil, 1024, 1024)
-  // TODO: Handle error
   if err != nil {
     return
   }
@@ -108,7 +106,7 @@ func WebSocketHandler(rw http.ResponseWriter, request *http.Request) {
       }
       hrefs := make(chan string)
       httpResponses := make(chan HttpResponse)
-      // Here we go
+
       go extractLinksFromPage(urlData.Url, hrefs)
       numberOfLinks := 0
       for href := range hrefs {
@@ -129,8 +127,8 @@ func WebSocketHandler(rw http.ResponseWriter, request *http.Request) {
 
 // Parameters are simply the request and the response writer
 func RootHandler(rw http.ResponseWriter, request *http.Request) {
-  fmt.Printf("GET /\nProcessing by root handler\n")
-
+  fmt.Println("GET /")
+  fmt.Println("Processing by root handler")
   http.ServeFile(rw, request, "public/gofetch.html")
 }
 
@@ -139,19 +137,10 @@ func QueryHandler(rw http.ResponseWriter, request *http.Request) {
 }
 
 func main() {
-  _, err := http.Get("http://projects.metafilter.com/")
-  if err != nil {
-    fmt.Printf("%+v", err)
-    return
-  }
   r := mux.NewRouter()
 
   s := r.Schemes("http").Host("localhost").Subrouter()
   s.HandleFunc("/", RootHandler)
-
-  s.HandleFunc("/check", QueryHandler).
-    Methods("POST").
-    Headers("X-Requested-With", "XMLHttpRequest")
 
   s.HandleFunc("/websocket", WebSocketHandler)
 
