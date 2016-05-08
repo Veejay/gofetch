@@ -8,6 +8,13 @@ Start the server
 ./gofetch
 ```
 
+## Cross-compilation 
+
+Golang allows us to compile the program for a different architecture directly
+```
+env GOOS=darwin GOARCH=amd64 go build gofetch.go  
+```
+
 You can now browse localhost on port 12345
 
 Type in a URL in the input field and click `go`, it will display the results.
