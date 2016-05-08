@@ -1,13 +1,14 @@
 package main
 
 import (
-  "code.google.com/p/go.net/html"
+  "golang.org/x/net/html"
   "github.com/gorilla/websocket"
   "github.com/gorilla/mux"
   "fmt"
   "encoding/json"
   "net/http"
   "net/url"
+  "strings"
 )
 
 type QueryURL struct {
@@ -57,9 +58,8 @@ func extractLinksFromPage(address string, c chan<- string) {
           panic(err)
         }
         location.RawQuery = url.QueryEscape(location.RawQuery)
-        if location.Scheme == "http" || location.Scheme == "https" {
-          c <- location.String()
-        }
+        fmt.Println(location.String())
+        c <- location.String()
       }
     case html.EndTagToken:
       if token.Data == "html" {
@@ -73,8 +73,15 @@ func extractLinksFromPage(address string, c chan<- string) {
 }
 
 func checkLink(href string, responses chan<- HttpResponse) {
+  if (strings.HasPrefix(href, "mailto")) {
+    return
+  }
+  if (!strings.HasPrefix(href, "http")) {
+    href = "http://www.fondation-entreprise-ricard.com" + href
+  }
+
   response, err := http.Get(href)
-  // FIXME: This retry is awful, we might want to 
+  // FIXME: This retry is awful, we might want to
   // send that to a retry channel or something
   if err != nil {
     response, err := http.Get(href)
