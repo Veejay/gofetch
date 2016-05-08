@@ -9,6 +9,7 @@ import (
   "net/http"
   "net/url"
   "strings"
+  "sync"
 )
 
 type QueryURL struct {
@@ -18,6 +19,24 @@ type QueryURL struct {
 type HttpResponse struct {
   Url        string
   StatusCode int
+}
+
+type ConcurrentMap struct {
+	v   map[string]bool
+  sync.RWMutex
+}
+
+func (c *ConcurrentMap) HasProcessed(key string) bool {
+  c.RLock()
+	defer c.RUnlock()
+	_, ok := c.v[key]
+	return ok
+}
+
+func (c *ConcurrentMap) Process(key string) {
+  c.Lock()
+	defer c.Unlock()
+	c.v[key] = true
 }
 
 func getHypertextReference(tag html.Token) (href string) {
@@ -31,6 +50,10 @@ func getHypertextReference(tag html.Token) (href string) {
 }
 
 func extractLinksFromPage(address string, c chan<- string) {
+  info, err := url.Parse(address)
+  if err != nil {
+    panic(err)
+  }
   response, err := http.Get(address)
   if err != nil {
     fmt.Printf("An error occurred while issuing a HTTP GET request to %s\n", address)
@@ -58,8 +81,7 @@ func extractLinksFromPage(address string, c chan<- string) {
           panic(err)
         }
         location.RawQuery = url.QueryEscape(location.RawQuery)
-        fmt.Println(location.String())
-        c <- location.String()
+        c <- info.ResolveReference(location).String()
       }
     case html.EndTagToken:
       if token.Data == "html" {
@@ -72,28 +94,39 @@ func extractLinksFromPage(address string, c chan<- string) {
   }
 }
 
-func checkLink(href string, responses chan<- HttpResponse) {
+func checkLink(href string, responses chan<- HttpResponse, c chan<- string, crawler ConcurrentMap) {
   if (strings.HasPrefix(href, "mailto")) {
     return
   }
-  if (!strings.HasPrefix(href, "http")) {
-    href = "http://www.fondation-entreprise-ricard.com" + href
-  }
 
-  response, err := http.Get(href)
-  // FIXME: This retry is awful, we might want to
-  // send that to a retry channel or something
-  if err != nil {
-    response, err := http.Get(href)
-    if err != nil {
-      responses <- HttpResponse{href, 999}
+
+  if (strings.HasPrefix(href, "http://www.fondation-entreprise-ricard.com")) {
+    fmt.Printf("VALUE STORED FOR KEY %s: %t\n\n", href, crawler.v[href])
+    if (!crawler.HasProcessed(href)) {
+      crawler.Process(href)
+      go extractLinksFromPage(href, c)
       return
+    } else {
+      fmt.Printf("We've already checked URL %s", href)
+    }
+  } else {
+    response, err := http.Get(href)
+    // FIXME: This retry is awful, we might want to
+    // send that to a retry channel or something
+    if err != nil {
+      response, err := http.Get(href)
+      if err != nil {
+        responses <- HttpResponse{href, 999}
+        return
+      }
+      defer response.Body.Close()
+      responses <- HttpResponse{href, response.StatusCode}
     }
     defer response.Body.Close()
     responses <- HttpResponse{href, response.StatusCode}
   }
-  defer response.Body.Close()
-  responses <- HttpResponse{href, response.StatusCode}
+
+
 }
 
 func WebSocketHandler(rw http.ResponseWriter, request *http.Request) {
@@ -116,9 +149,10 @@ func WebSocketHandler(rw http.ResponseWriter, request *http.Request) {
 
       go extractLinksFromPage(urlData.Url, hrefs)
       numberOfLinks := 0
+      c := ConcurrentMap{v: make(map[string]bool)}
       for href := range hrefs {
         numberOfLinks += 1
-        go checkLink(href, httpResponses)
+        go checkLink(href, httpResponses, hrefs, c)
       }
       for i := 0; i < numberOfLinks; i += 1 {
         response := <-httpResponses
